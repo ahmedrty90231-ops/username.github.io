@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Blocka — Игра</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+  <div id="hudRoot"></div>
+
+  <button id="pauseBtn" class="pause-btn" aria-label="pause" hidden>
+    <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4.4" height="16" rx="1" fill="currentColor"/><rect x="13.6" y="4" width="4.4" height="16" rx="1" fill="currentColor"/></svg>
+  </button>
+
+  <!-- loading -->
+  <div class="overlay show" id="loadingOverlay">
+    <img class="ov-logo" src="assets/menu/logo.png" alt="Blocka" draggable="false">
+    <div class="prog-wrap">
+      <div class="prog-label" id="loadLabel">Загрузка Blocka…</div>
+      <div class="prog-bar"><div class="prog-fill" id="loadFill"></div></div>
+    </div>
+  </div>
+
+  <!-- click to play -->
+  <div class="overlay" id="playOverlay" hidden>
+    <div class="ov-title" data-i18n="click_play">Нажми, чтобы играть</div>
+    <div class="ov-sub" data-i18n="click_play_hint">Клик захватит мышь. Esc — пауза.</div>
+  </div>
+
+  <!-- pause -->
+  <div class="overlay" id="pauseOverlay" hidden>
+    <div class="ov-box">
+      <div class="ov-title small" data-i18n="paused">Пауза</div>
+      <div class="pbtn-col">
+        <button class="pbtn primary" id="btnResume"><span data-i18n="back_to_game">Вернуться в игру</span></button>
+        <button class="pbtn" id="btnPauseSettings"><span data-i18n="settings">Настройки</span></button>
+        <button class="pbtn" id="btnNewWorld"><span data-i18n="new_world">Новый мир</span></button>
+        <button class="pbtn" id="btnSaveExit"><span data-i18n="save_exit">Сохранить и выйти</span></button>
+      </div>
+      <div class="pause-settings" id="pauseSettings" hidden>
+        <label class="row"><span data-i18n="set_render">Дальность прорисовки</span>
+          <input type="range" id="pRender" min="3" max="10" step="1"><b id="pRenderVal"></b></label>
+        <label class="row"><span data-i18n="set_fov">FOV</span>
+          <input type="range" id="pFov" min="60" max="100" step="1"><b id="pFovVal"></b></label>
+        <label class="row"><span data-i18n="set_sens">Чувствительность</span>
+          <input type="range" id="pSens" min="0.3" max="2.5" step="0.1"><b id="pSensVal"></b></label>
+        <label class="row"><span data-i18n="set_volume">Громкость</span>
+          <input type="range" id="pVol" min="0" max="1" step="0.05"><b id="pVolVal"></b></label>
+        <label class="row"><span data-i18n="set_clouds">Облака</span>
+          <input type="checkbox" id="pClouds" class="switch"></label>
+        <label class="row"><span data-i18n="set_invert">Инвертировать Y</span>
+          <input type="checkbox" id="pInvert" class="switch"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- death -->
+  <div class="overlay dark" id="deathOverlay" hidden>
+    <div class="ov-title red" data-i18n="died">Ты погиб!</div>
+    <div class="ov-sub" data-i18n="died_hint">Не переживай — мир на месте.</div>
+    <button class="pbtn primary big" id="btnRespawn"><span data-i18n="respawn">Возродиться</span></button>
+  </div>
+
+  <!-- confirm -->
+  <div class="overlay dark" id="confirmOverlay" hidden>
+    <div class="ov-box">
+      <div class="ov-sub big" id="confirmText"></div>
+      <div class="pbtn-row">
+        <button class="pbtn" id="btnConfirmNo"><span data-i18n="confirm_no">Отмена</span></button>
+        <button class="pbtn danger" id="btnConfirmYes"><span data-i18n="confirm_yes">Да</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameToast" hidden></div>
+</div>
+
+<script src="js/vendor/three.min.js"></script>
+<script src="js/engine/i18n.js"></script>
+<script src="js/engine/noise.js"></script>
+<script src="js/engine/sound.js"></script>
+<script src="js/engine/blocks.js"></script>
+<script src="js/engine/textures.js"></script>
+<script src="js/engine/world.js"></script>
+<script src="js/engine/player.js"></script>
+<script src="js/engine/hud.js"></script>
+<script src="js/engine/touch.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

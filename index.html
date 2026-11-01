@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Blocka — Строй. Исследуй. Выживай.</title>
+<meta name="description" content="Blocka — браузерная песочница в стиле Minecraft: строй, исследуй, выживай.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="css/menu.css">
+</head>
+<body>
+<div id="bg" aria-hidden="true"></div>
+<div id="vignette" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="top-actions">
+    <button id="btnLang" class="icon-btn" title="Language / Язык" aria-label="language">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 12h18M12 3c2.7 2.6 4 5.7 4 9s-1.3 6.4-4 9c-2.7-2.6-4-5.7-4-9s1.3-6.4 4-9z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+    </button>
+    <button id="btnFull" class="icon-btn" title="Fullscreen" aria-label="fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="btnHelp" class="icon-btn" title="?" aria-label="help">
+      <svg viewBox="0 0 24 24"><path d="M9.2 9a2.8 2.8 0 1 1 4 2.6c-1 .5-1.2 1.1-1.2 2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.3" r="1.3" fill="currentColor"/></svg>
+    </button>
+    <div class="wish" id="wishLine" data-i18n="good_game">Хорошей игры!</div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="left-col">
+    <img id="logo" src="assets/menu/logo.png" alt="Blocka" draggable="false">
+
+    <nav class="menu-buttons">
+      <button class="mbtn primary" id="btnPlay">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></span>
+        <span class="label" data-i18n="play">Играть</span>
+      </button>
+      <button class="mbtn" id="btnSingle">
+        <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.4" fill="currentColor"/><path d="M5 20c.6-4 3.4-6 7-6s6.4 2 7 6z" fill="currentColor"/></svg></span>
+        <span class="label" data-i18n="single">Одиночная игра</span>
+      </button>
+      <button class="mbtn" id="btnMulti">
+        <span class="ic"><svg viewBox="0 0 24 24"><circle cx="8" cy="8.4" r="2.9" fill="currentColor"/><circle cx="16.6" cy="8.4" r="2.9" fill="currentColor"/><path d="M2.8 19.5c.5-3.3 2.6-5 5.2-5 1 0 1.9.2 2.7.8 1-.7 2.1-.8 3-.8 2.6 0 4.7 1.7 5.2 5z" fill="currentColor"/></svg></span>
+        <span class="label" data-i18n="multi">Сетевая игра</span>
+        <span class="badge" data-i18n="soon">скоро</span>
+      </button>
+      <button class="mbtn" id="btnSettings">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8zM19.4 13.5c.06-.5.06-1 .06-1.5s0-1-.06-1.5l2-1.5-2-3.4-2.3 1a8 8 0 0 0-2.6-1.5L14 3h-4l-.54 3.1a8 8 0 0 0-2.6 1.5l-2.3-1-2 3.4 2 1.5c-.06.5-.06 1-.06 1.5s0 1 .06 1.5l-2 1.5 2 3.4 2.3-1c.8.66 1.68 1.16 2.6 1.5L10 21h4l.54-3.1c.92-.34 1.8-.84 2.6-1.5l2.3 1 2-3.4z" fill="currentColor"/></svg></span>
+        <span class="label" data-i18n="settings">Настройки</span>
+      </button>
+      <button class="mbtn half" id="btnExit">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M10 4h6.5A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5H10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 12h9M10 8.5 13.5 12 10 15.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <span class="label" data-i18n="exit">Выйти</span>
+      </button>
+    </nav>
+  </section>
+
+  <aside class="news-panel">
+    <h2 data-i18n="whatsnew">Что нового?</h2>
+    <div class="divider"></div>
+    <div class="thumb"><img src="assets/menu/preview.png" alt="Новые биомы" draggable="false"></div>
+    <h3 data-i18n="update_title">Обновление 0.3.1</h3>
+    <ul>
+      <li data-i18n="update_l1">Новые биомы</li>
+      <li data-i18n="update_l2">Животные</li>
+      <li data-i18n="update_l3">И ещё больше блоков!</li>
+    </ul>
+    <button class="more" id="btnMore"><span data-i18n="details">Подробнее</span>
+      <svg viewBox="0 0 24 24"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </aside>
+</main>
+
+<footer class="footer">
+  <span><b data-i18n="version">v0.3.1 Alpha</b><span class="sep">|</span><span data-i18n="thanks">Спасибо, что играешь!</span></span>
+  <span class="domain">blocka.game</span>
+  <span>© 2025 <span data-i18n="rights">Blocka Team</span></span>
+</footer>
+
+<!-- ===== Settings modal ===== -->
+<div class="modal-mask" id="settingsModal" hidden>
+  <div class="modal">
+    <h2 data-i18n="set_title">Настройки</h2>
+    <div class="set-group">
+      <h3 data-i18n="set_lang">Язык / Language</h3>
+      <div class="seg" id="segLang">
+        <button data-lang="ru">Русский</button>
+        <button data-lang="en">English</button>
+      </div>
+    </div>
+    <div class="set-group">
+      <h3 data-i18n="set_graphics">Графика</h3>
+      <label class="row"><span data-i18n="set_render">Дальность прорисовки</span>
+        <input type="range" id="setRender" min="3" max="10" step="1"><b id="setRenderVal"></b>
+      </label>
+      <label class="row"><span data-i18n="set_fov">Поле зрения (FOV)</span>
+        <input type="range" id="setFov" min="60" max="100" step="1"><b id="setFovVal"></b>
+      </label>
+      <label class="row"><span data-i18n="set_clouds">Облака</span>
+        <input type="checkbox" id="setClouds" class="switch">
+      </label>
+    </div>
+    <div class="set-group">
+      <h3 data-i18n="set_controls_s">Управление</h3>
+      <label class="row"><span data-i18n="set_sens">Чувствительность мыши</span>
+        <input type="range" id="setSens" min="0.3" max="2.5" step="0.1"><b id="setSensVal"></b>
+      </label>
+      <label class="row"><span data-i18n="set_invert">Инвертировать ось Y</span>
+        <input type="checkbox" id="setInvert" class="switch">
+      </label>
+    </div>
+    <div class="set-group">
+      <h3 data-i18n="set_audio">Звук</h3>
+      <label class="row"><span data-i18n="set_volume">Громкость</span>
+        <input type="range" id="setVol" min="0" max="1" step="0.05"><b id="setVolVal"></b>
+      </label>
+    </div>
+    <button class="mbtn primary modal-close" id="btnSettingsClose"><span class="label" data-i18n="close">Закрыть</span></button>
+  </div>
+</div>
+
+<!-- ===== Help modal ===== -->
+<div class="modal-mask" id="helpModal" hidden>
+  <div class="modal">
+    <h2 data-i18n="help_title">Как играть</h2>
+    <ul class="help-list">
+      <li data-i18n="help_move"></li>
+      <li data-i18n="help_look"></li>
+      <li data-i18n="help_slots"></li>
+      <li data-i18n="help_sprint"></li>
+      <li data-i18n="help_fly"></li>
+      <li data-i18n="help_food"></li>
+      <li data-i18n="help_pause"></li>
+    </ul>
+    <button class="mbtn primary modal-close" id="btnHelpClose"><span class="label" data-i18n="close">Закрыть</span></button>
+  </div>
+</div>
+
+<!-- ===== World modal ===== -->
+<div class="modal-mask" id="worldModal" hidden>
+  <div class="modal">
+    <h2 data-i18n="world_title">Одиночная игра</h2>
+    <div class="world-actions">
+      <button class="mbtn" id="btnContinue" hidden>
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></span>
+        <span class="label" data-i18n="world_continue">Продолжить мир</span>
+      </button>
+      <div class="new-world-box">
+        <h3 data-i18n="world_new">Создать новый мир</h3>
+        <label class="seed-label" data-i18n="world_seed">Сид мира (необязательно)</label>
+        <input type="text" id="seedInput" maxlength="24" autocomplete="off">
+        <div class="warn" id="overwriteWarn" data-i18n="world_overwrite" hidden></div>
+        <div class="warn info" id="nosaveInfo" data-i18n="world_no_save" hidden></div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <button class="mbtn half" id="btnWorldBack"><span class="label" data-i18n="back">Назад</span></button>
+      <button class="mbtn primary" id="btnWorldStart"><span class="label" data-i18n="world_start">Начать игру</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+
+<script src="js/engine/i18n.js"></script>
+<script src="js/menu.js"></script>
+</body>
+</html>
