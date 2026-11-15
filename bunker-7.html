@@ -93,6 +93,12 @@ canvas#vhs{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-i
   font-size:11px;letter-spacing:1px;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:3px;
   white-space:nowrap;transition:opacity 1.2s;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:640px){#hintBar{display:none}}
+#hiddenHint{position:absolute;bottom:33%;left:50%;transform:translateX(-50%);display:none;
+  color:#c8c2ae;font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  background:rgba(0,0,0,.62);border:1px solid rgba(216,207,180,.35);padding:7px 18px;border-radius:3px;
+  white-space:nowrap}
+#hiddenHint.on{display:block;animation:hh 2.1s ease-in-out infinite}
+@keyframes hh{0%,100%{opacity:.6}50%{opacity:1}}
 
 /* ============ СЕНСОРНОЕ УПРАВЛЕНИЕ ============ */
 #touchUI{display:none;position:fixed;inset:0;z-index:12;pointer-events:none}
@@ -229,7 +235,8 @@ kbd{border:1px solid #55504a;border-bottom:3px solid #3a3630;border-radius:4px;p
 
   <div id="prompt"><b>E</b><span id="promptText">Взять кассету</span></div>
   <div id="subtitle"><span class="who">— ГОЛОС ИЗ СТЕН —</span><span id="subtitleText"></span></div>
-  <div id="hintBar">WASD — шаг · SHIFT — бег · F — фонарик · E — взять · V — КРИК · ESC — пауза</div>
+  <div id="hintBar">WASD — шаг · SHIFT — бег · F — фонарик · E — взять / спрятаться · V — КРИК · ESC — пауза</div>
+  <div id="hiddenHint">В ШКАФУ · НЕ ДЫШИТЕ · E — выйти</div>
 </div>
 
 <!-- ============ СЕНСОРНОЕ УПРАВЛЕНИЕ ============ -->
@@ -281,7 +288,8 @@ kbd{border:1px solid #55504a;border-bottom:3px solid #3a3630;border-radius:4px;p
       <div class="story">
         Связь с экспедицией пропала <b>14 часов назад</b>. Вас спустили вниз на тросе — обратно трос не достаёт.<br><br>
         Говорят, Объект запломбировали вместе со всеми. Говорят, там хранилось что-то, что <b>нельзя было хоронить</b>.<br><br>
-        Найдите <b>5 аудиокассет</b> с записями наблюдения. Только тогда лифт Д-7 снова откроется. Фонарик садится — экономьте. И помните: <b>оно реагирует на свет и на звук.</b>
+        Найдите <b>5 аудиокассет</b> с записями наблюдения. Только тогда лифт Д-7 снова откроется. Фонарик садится — экономьте. И помните: <b>оно реагирует на свет и на звук.</b><br><br>
+        Шкафы в коридорах — единственное укрытие. Внутри темно, пахнет железом и чем-то ещё… Но оно умеет ждать. И стучит.
       </div>
       <div class="warn">
         <b>&#9888; ВНИМАНИЕ</b><br>
@@ -296,7 +304,7 @@ kbd{border:1px solid #55504a;border-bottom:3px solid #3a3630;border-radius:4px;p
         <div class="ctr"><span>Обзор</span><span>Мышь (захват)</span></div>
         <div class="ctr"><span>Бег (тратит силы)</span><span><kbd>SHIFT</kbd></span></div>
         <div class="ctr"><span>Фонарик</span><span><kbd>F</kbd></span></div>
-        <div class="ctr"><span>Взять / использовать</span><span><kbd>E</kbd></span></div>
+        <div class="ctr"><span>Взять / спрятаться в шкаф</span><span><kbd>E</kbd></span></div>
         <div class="ctr"><span>КРИК (отгоняет вблизи, слышен отовсюду)</span><span><kbd>V</kbd></span></div>
         <div class="ctr"><span>Пауза</span><span><kbd>ESC</kbd></span></div>
         <div class="divider"></div>
@@ -381,7 +389,8 @@ const AU={
     this.comp=ctx.createDynamicsCompressor();
     this.comp.threshold.value=-18;this.comp.knee.value=22;this.comp.ratio.value=14;this.comp.attack.value=0.004;this.comp.release.value=0.18;
     this.master=ctx.createGain();this.master.gain.value=(+$('volSlider').value/100)*0.9;
-    this.master.connect(this.comp);this.comp.connect(ctx.destination);
+    this.muffle=ctx.createBiquadFilter();this.muffle.type='lowpass';this.muffle.frequency.value=19000;this.muffle.Q.value=0.7;
+    this.master.connect(this.muffle);this.muffle.connect(this.comp);this.comp.connect(ctx.destination);
     // шумовой буфер
     const len=ctx.sampleRate*2,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
@@ -506,6 +515,23 @@ const AU={
     [0,0.16].forEach(off=>{const o=ctx.createOscillator();o.type='square';o.frequency.value=132;
       const g=ctx.createGain();g.gain.setValueAtTime(0.16,t+off);g.gain.exponentialRampToValueAtTime(0.0001,t+off+0.11);
       o.connect(g);g.connect(this.master);o.start(t+off);o.stop(t+off+0.12);});
+  },
+  // --- глушилка звука в шкафу (всё становится глуше) ---
+  setMuffled(on){
+    if(!this.muffle)return;
+    this.muffle.frequency.setTargetAtTime(on?430:19000,this.ctx.currentTime,0.22);
+  },
+  // --- металлический стук / скрип шкафа ---
+  clank(){
+    if(!this.ctx)return;const ctx=this.ctx,t=ctx.currentTime;
+    const o=ctx.createOscillator();o.type='square';
+    o.frequency.setValueAtTime(196,t);o.frequency.exponentialRampToValueAtTime(96,t+0.1);
+    const g=ctx.createGain();g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.15);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+0.16);
+    const src=ctx.createBufferSource();src.buffer=this.noiseBuf;
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1350;bp.Q.value=3.4;
+    const ng=ctx.createGain();ng.gain.setValueAtTime(0.3,t);ng.gain.exponentialRampToValueAtTime(0.0001,t+0.11);
+    src.connect(bp);bp.connect(ng);ng.connect(this.master);src.start(t);src.stop(t+0.13);
   },
   // --- стук (ложный скример) ---
   bang(strong){
@@ -821,6 +847,54 @@ function batteryTexture(){
   return c;
 }
 
+function lockerBodyTexture(){
+  const c=makeCanvas(256,512),x=c.getContext('2d');
+  x.fillStyle='#494f40';x.fillRect(0,0,256,512);
+  x.fillStyle='#3d4235';x.fillRect(0,0,15,512);x.fillRect(241,0,15,512);
+  x.strokeStyle='rgba(0,0,0,0.35)';x.lineWidth=3;
+  x.beginPath();x.moveTo(128,0);x.lineTo(128,512);x.stroke();
+  applyNoise(x,256,512,26);addBlotches(x,12,256,512,90,0.35,true);
+  x.fillStyle='rgba(0,0,0,0.28)';
+  [122,258,394].forEach(function(y){x.fillRect(0,y,256,10);});
+  x.fillStyle='rgba(255,255,255,0.09)';
+  [132,268,404].forEach(function(y){x.fillRect(0,y,256,3);});
+  x.fillStyle='rgba(232,228,214,0.62)';x.font='bold 44px Courier New';x.textAlign='center';
+  x.fillText(String(irand(2,48)),128,74);
+  x.strokeStyle='rgba(200,200,190,0.16)';x.lineWidth=1;
+  for(let i=0;i<9;i++){x.beginPath();const sx=rand(20,236);x.moveTo(sx,rand(0,512));x.lineTo(sx+rand(-30,30),rand(0,512));x.stroke();}
+  addMold(x,6,256,512);
+  for(let i=0;i<7;i++){const rx=rand(20,236);const g=x.createLinearGradient(rx,512,rx,372);
+    g.addColorStop(0,'rgba(122,66,28,0.55)');g.addColorStop(1,'rgba(122,66,28,0)');x.fillStyle=g;x.fillRect(rx-4,372,8,140);}
+  return c;
+}
+function lockerDoorTexture(){
+  const c=makeCanvas(256,512),x=c.getContext('2d');
+  x.fillStyle='#4d5544';x.fillRect(0,0,256,512);
+  x.strokeStyle='rgba(0,0,0,0.4)';x.lineWidth=6;x.strokeRect(3,3,250,506);
+  applyNoise(x,256,512,24);addBlotches(x,10,256,512,80,0.32,true);
+  function louvers(y0){for(let i=0;i<5;i++){const y=y0+i*17;
+    x.fillStyle='rgba(0,0,0,0.52)';x.fillRect(28,y,200,8);
+    x.fillStyle='rgba(255,255,255,0.14)';x.fillRect(28,y+8,200,2);}}
+  louvers(34);louvers(346);
+  x.fillStyle='rgba(0,0,0,0.42)';x.fillRect(178,232,50,70);
+  x.fillStyle='#181a16';x.fillRect(190,244,26,44);
+  x.fillStyle='rgba(255,255,255,0.2)';x.fillRect(178,232,50,5);
+  x.fillStyle='rgba(232,228,214,0.55)';x.fillRect(58,262,78,27);
+  x.fillStyle='#20241c';x.font='bold 15px Courier New';x.textAlign='center';x.fillText('Ш-7',97,281);
+  x.strokeStyle='rgba(205,205,195,0.18)';x.lineWidth=1;
+  for(let i=0;i<12;i++){x.beginPath();const sx=rand(16,240);const sy=rand(0,512);
+    x.moveTo(sx,sy);x.lineTo(sx+rand(-36,36),sy+rand(-60,60));x.stroke();}
+  addMold(x,5,256,512);
+  return c;
+}
+function lockerDoorAlpha(){
+  const c=makeCanvas(256,512),x=c.getContext('2d');
+  x.fillStyle='#ffffff';x.fillRect(0,0,256,512);
+  function slits(y0){for(let i=0;i<5;i++){const y=y0+i*17;x.fillStyle='#000000';x.fillRect(30,y,196,5);}}
+  slits(34);slits(346);
+  return c;
+}
+
 // ================= ГЕНЕРАЦИЯ ЛАБИРИНТА =================
 function genMaze(){
   grid=Array.from({length:H},()=>Array(W).fill(1));
@@ -930,11 +1004,12 @@ let scene,camera,renderer,clock,maxAniso=4;
 let ambLight=null,hemiLight=null;
 let tapeTexShared,glowTexShared,tapeFaceTex;
 let ceilingLights=[];
-let tapes=[],batteries=[],propColliders=[],shadowFigures=[];
+let tapes=[],batteries=[],propColliders=[],shadowFigures=[],lockers=[];
+let standoff=null,standoffCd=0;
 let elevatorGroup=null,elevatorSignMat=null,elevatorCell=null,elevatorLight=null;
 let elevatorAnim={active:false,t:0};
 const monster={group:null,pos:new THREE.Vector3(),yaw:0,state:'roam',alert:0,path:[],repath:0,lostT:0,stun:0,lastSeen:new THREE.Vector3(),maskGroup:null,eyeL:null,eyeR:null,bobPhase:rand(0,6),groanCd:0,eyeFlare:0};
-const player={pos:new THREE.Vector3(),yaw:0,pitch:0,stamina:100,battery:100,flashlight:true,bobPhase:0,stepAcc:0};
+const player={pos:new THREE.Vector3(),yaw:0,pitch:0,stamina:100,battery:100,flashlight:true,bobPhase:0,stepAcc:0,hidden:null};
 const noise={radius:0,strength:0};
 const keys={};
 let joyVec={x:0,y:0},joyMag=0;
@@ -1111,6 +1186,9 @@ function initThree(){
   // --- кассеты и батарейки ---
   spawnEntities();
 
+  // --- шкафы для укрытия ---
+  buildLockers();
+
   // --- лифт ---
   buildElevator();
 
@@ -1199,6 +1277,75 @@ function spawnEntities(){
     scene.add(bg);
     batteries.push({group:bg,mesh:bmesh,x:p.x,z:p.z,taken:false,phase:rand(0,6)});
     bPlaced++;
+  }
+}
+
+function buildLockers(){
+  const maxA=Math.min(8,maxAniso);
+  const bodyTex=new THREE.CanvasTexture(lockerBodyTexture());bodyTex.encoding=THREE.sRGBEncoding;bodyTex.anisotropy=maxA;
+  const doorTex=new THREE.CanvasTexture(lockerDoorTexture());doorTex.encoding=THREE.sRGBEncoding;doorTex.anisotropy=maxA;
+  const doorAlpha=new THREE.CanvasTexture(lockerDoorAlpha());
+  const bodyMat=new THREE.MeshLambertMaterial({map:bodyTex});
+  const invis=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,transparent:true,opacity:0});
+  const innerMat=new THREE.MeshLambertMaterial({color:0x16140f,side:THREE.BackSide});
+  const doorMat=new THREE.MeshLambertMaterial({map:doorTex,alphaMap:doorAlpha,alphaTest:0.45,side:THREE.DoubleSide});
+  const reserved={};
+  reserved['1,1']=1;
+  let i;
+  for(i=0;i<tapes.length;i++){const c=worldToCell(tapes[i].x,tapes[i].z);reserved[c.cx+','+c.cy]=1;}
+  for(i=0;i<batteries.length;i++){const c=worldToCell(batteries[i].x,batteries[i].z);reserved[c.cx+','+c.cy]=1;}
+  if(elevatorCell)reserved[elevatorCell.cx+','+elevatorCell.cy]=1;
+  if(monster.spawnCell)reserved[monster.spawnCell.cx+','+monster.spawnCell.cy]=1;
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  let placed=0,guard=0;
+  while(placed<9&&guard++<700){
+    const cx=irand(1,W-2),cy=irand(1,H-2);
+    if(grid[cy][cx]!==0)continue;
+    if(reserved[cx+','+cy])continue;
+    let wallDirs=[];
+    for(let k=0;k<4;k++)if(isWallCell(cx+dirs[k][0],cy+dirs[k][1]))wallDirs.push(dirs[k]);
+    if(wallDirs.length!==1)continue; // приставляем к единственной стене клетки
+    const wd=wallDirs[0];
+    const outDir={x:-wd[0],z:-wd[1]};
+    const p=cellToWorld(cx,cy);
+    const fx=p.x-wd[0]*(CELL/2-0.34),fz=p.z-wd[1]*(CELL/2-0.34);
+    let ok=true;
+    for(let k=0;k<propColliders.length;k++){if(dist2D(fx,fz,propColliders[k].x,propColliders[k].z)<1.35){ok=false;break;}}
+    if(!ok)continue;
+    const viewYaw=Math.atan2(-outDir.x,-outDir.z);
+    const g=new THREE.Group();
+    g.position.set(fx,0,fz);g.rotation.y=viewYaw;
+    // корпус (лицевая грань невидима, внутрь можно заглядывать при открытой двери)
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.92,1.95,0.62),[bodyMat,bodyMat,bodyMat,bodyMat,invis,bodyMat]);
+    body.position.y=0.975;g.add(body);
+    const inner=new THREE.Mesh(new THREE.BoxGeometry(0.84,1.87,0.55),innerMat);
+    inner.position.y=0.975;g.add(inner);
+    // ножки
+    const legGeo=new THREE.BoxGeometry(0.07,0.1,0.07);
+    const legMat=new THREE.MeshLambertMaterial({color:0x1c1e1a});
+    [[-0.36,0.27],[0.36,0.27],[-0.36,-0.27],[0.36,-0.27]].forEach(function(o){
+      const leg=new THREE.Mesh(legGeo,legMat);leg.position.set(o[0],0.05,o[1]);g.add(leg);
+    });
+    // дверь на петлях слева
+    const pivot=new THREE.Group();
+    pivot.position.set(-0.44,1.0,0.315);
+    const door=new THREE.Mesh(new THREE.BoxGeometry(0.86,1.84,0.05),doorMat);
+    door.position.set(0.43,0,0.026);
+    pivot.add(door);
+    pivot.rotation.y=-1.92; // двери открыты в начале
+    g.add(pivot);
+    scene.add(g);
+    propColliders.push({x:fx,z:fz,r:0.68});
+    lockers.push({group:g,doorPivot:pivot,x:fx,z:fz,viewYaw:viewYaw,outX:outDir.x,outZ:outDir.z,door:1,doorTarget:1});
+    reserved[cx+','+cy]=1;
+    placed++;
+  }
+}
+function updateLockers(dt){
+  for(let i=0;i<lockers.length;i++){
+    const lk=lockers[i];
+    lk.door+=(lk.doorTarget-lk.door)*Math.min(1,5.2*dt);
+    lk.doorPivot.rotation.y=-lk.door*1.92;
   }
 }
 
@@ -1462,9 +1609,10 @@ function updateMonster(dt){
   if(state==='dead')return; // рывок к камере обрабатывает deathUpdate
 
   // --- восприятие ---
-  const flashOn=player.flashlight&&player.battery>0;
+  const hidden=!!player.hidden;
+  const flashOn=!hidden&&player.flashlight&&player.battery>0;
   let stim=0;
-  const see=hasLOS(m.pos.x,m.pos.z,p.x,p.z)&&d<(flashOn?30:9.5);
+  const see=!hidden&&hasLOS(m.pos.x,m.pos.z,p.x,p.z)&&d<(flashOn?30:9.5);
   if(see){
     let s=flashOn?21:9;
     if(flashOn){
@@ -1475,8 +1623,10 @@ function updateMonster(dt){
     }
     stim+=s*clamp(1.4-d/26,0.3,1.4);
   }
-  if(noise.strength>2&&d<noise.radius)stim+=noise.strength*clamp(1-d/(noise.radius+1),0.25,1);
-  if(voice.enabled&&voice.smooth>0.15&&d<18)stim+=30*clamp(1-d/18,0.3,1);
+  if(!hidden){
+    if(noise.strength>2&&d<noise.radius)stim+=noise.strength*clamp(1-d/(noise.radius+1),0.25,1);
+    if(voice.enabled&&voice.smooth>0.15&&d<18)stim+=30*clamp(1-d/18,0.3,1);
+  }
 
   if(stim>2){m.lastSeen.set(p.x,0,p.z);m.lostT=0;}else m.lostT+=dt;
   m.alert=clamp(m.alert+(stim-4.6)*dt,0,100);
@@ -1523,8 +1673,12 @@ function updateMonster(dt){
   }
   m.yaw=lerpAngle(m.yaw,targetYaw,1-Math.exp(-4.2*dt));
 
-  // --- атака ---
-  if(d<1.72&&state==='playing'){death();return;}
+  // --- атака / стуковщина у шкафа ---
+  if(d<1.72&&state==='playing'){
+    if(player.hidden){ if(standoffCd<=0)startStandoff(); }
+    else death();
+    return;
+  }
 
   // --- анимация ---
   m.bobPhase+=dt*(speed>2?7.6:4.1);
@@ -1543,6 +1697,58 @@ function updateMonster(dt){
   m.eyeL.scale.set(es,es,1);m.eyeR.scale.set(es,es,1);
   m.eyeL.material.color.setHex(hunt?0xff2a14:0xffe6b8);
   m.eyeR.material.color.setHex(hunt?0xff2a14:0xffe6b8);
+}
+
+// ================= ШКАФ: СТУКОВЩИНА =================
+function startStandoff(){
+  if(standoff)return;
+  standoff={t:0,bangT:0.4};
+  monster.stun=Math.max(monster.stun,0.7);
+  monster.alert=78;
+  AU.roar();
+  glitchBurst(0.8);
+  shakeT=Math.max(shakeT,0.55);
+  showSubtitle('ОНО у стенки шкафа. Дышать страшно.');
+}
+function updateStandoff(dt){
+  if(standoffCd>0)standoffCd-=dt;
+  if(standoff){
+    standoff.t+=dt;standoff.bangT+=dt;
+    monster.stun=Math.max(monster.stun,0.3); // стучится, но не рвёт дверь сходу
+    if(standoff.bangT>1.12){
+      standoff.bangT=0;
+      AU.bang(true);
+      shakeT=Math.max(shakeT,0.8);
+      flickerGlobalT=Math.max(flickerGlobalT,0.7);
+      monster.eyeFlare=1.5;
+      glitchBurst(0.4);
+    }
+    // звук голоса за дверью — оно вломится
+    if(voice.enabled&&voice.smooth>0.24){
+      standoff=null;
+      AU.clank();
+      death();
+      return;
+    }
+    if(standoff.t>9.0){
+      standoff=null;
+      standoffCd=15; // оно уходит и некоторое время не возвращается
+      monster.alert=10;
+      monster.state='roam';
+      monster.lostT=0;
+      monster.path=[];
+      monster.repath=0;
+      showSubtitle('Стуки стихли. Оно ушло… пока что.');
+    }
+  }else if(player.hidden){
+    // даже за дверью громкий голос тянет его к шкафу
+    if(voice.enabled&&voice.smooth>0.3){
+      monster.lastSeen.set(player.pos.x,0,player.pos.z);
+      monster.alert=clamp(monster.alert+55*dt,0,100);
+      if(monster.state==='roam')monster.state='search';
+      monster.lostT=0;
+    }
+  }
 }
 
 // ================= ИГРОК =================
@@ -1572,7 +1778,18 @@ function collideMove(pos,dx,dz){
   if(circleHitsWall(nx,nz,r)||circleHitsProp(nx,nz,r))nz=pos.z;
   pos.x=nx;pos.z=nz;
 }
+function updateHiddenPlayer(dt){
+  const lk=player.hidden,t=globalTime;
+  player.pos.set(lk.x,0,lk.z);
+  camera.position.set(lk.x+lk.outX*0.05,1.34+Math.sin(t*1.22)*0.013,lk.z+lk.outZ*0.05);
+  camera.rotation.set(Math.sin(t*0.9)*0.045,lk.viewYaw+Math.sin(t*0.61)*0.055,Math.sin(t*0.47)*0.012);
+  camera.fov=lerp(camera.fov,58,1-Math.exp(-6*dt));
+  camera.updateProjectionMatrix();
+  if(player.spot)player.spot.intensity=0;
+  player.stamina=clamp(player.stamina+20*dt,0,100);
+}
 function updatePlayer(dt){
+  if(player.hidden){updateHiddenPlayer(dt);return;}
   const fwdX=-Math.sin(player.yaw),fwdZ=-Math.cos(player.yaw);
   const rgtX=Math.cos(player.yaw),rgtZ=-Math.sin(player.yaw);
   let ix=0,iz=0;
@@ -1648,6 +1865,7 @@ function updatePlayer(dt){
   }
 }
 function toggleFlashlight(){
+  if(player.hidden){AU.click(false);return;}
   if(player.battery<=0&&!player.flashlight){AU.click(false);return;}
   player.flashlight=!player.flashlight;
   AU.click(true);
@@ -1657,7 +1875,13 @@ function updateFlashBtn(){const b=$('btnFlash');if(b)b.classList.toggle('off',!p
 
 // ================= ВЗАИМОДЕЙСТВИЕ =================
 function nearestInteractable(){
+  if(player.hidden)return {type:'unhide',obj:player.hidden,label:'Выйти из шкафа'};
   let best=null,bd=2.0;
+  for(let i=0;i<lockers.length;i++){
+    const lk=lockers[i];
+    const d=dist2D(player.pos.x,player.pos.z,lk.x,lk.z);
+    if(d<1.75&&d<bd){bd=d;best={type:'hide',obj:lk,label:'Спрятаться в шкаф'};}
+  }
   for(let i=0;i<tapes.length;i++){
     const t=tapes[i];if(t.taken)continue;
     const d=dist2D(player.pos.x,player.pos.z,t.x,t.z);
@@ -1700,6 +1924,8 @@ function doInteract(){
   if(!interactTarget)interactTarget=nearestInteractable();
   if(!interactTarget)return;
   const it=interactTarget;
+  if(it.type==='hide'){enterLocker(it.obj);return;}
+  if(it.type==='unhide'){exitLocker();return;}
   if(it.type==='tape'){
     it.obj.taken=true;
     scene.remove(it.obj.group);
@@ -1727,6 +1953,31 @@ function doInteract(){
     if(elevatorReady){openElevator();}
     else{AU.denied();glitchBurst(0.25);}
   }
+}
+function enterLocker(lk){
+  player.hidden=lk;
+  player.pos.set(lk.x,0,lk.z);
+  player.yaw=lk.viewYaw;
+  player.pitch=0;
+  lk.doorTarget=0; // дверь захлопывается
+  player.flashlight=false;
+  noise.radius=0;noise.strength=0;noiseT=0;
+  AU.click(true);AU.clank();AU.setMuffled(true);
+  updateFlashBtn();
+  $('hiddenHint').classList.add('on');
+}
+function exitLocker(){
+  const lk=player.hidden;
+  if(!lk)return;
+  player.hidden=null;
+  lk.doorTarget=1; // дверь открывается со скрипом
+  player.pos.set(lk.x+lk.outX*1.35,0,lk.z+lk.outZ*1.35);
+  player.yaw=lk.viewYaw;
+  player.pitch=0;
+  AU.setMuffled(false);AU.clank();AU.click(true);
+  // открытие двери — слышимый хлопок
+  noise.radius=9;noise.strength=24;noiseT=1.1;
+  $('hiddenHint').classList.remove('on');
 }
 function openElevator(){
   if(elevatorAnim.active)return;
@@ -1812,6 +2063,7 @@ function deathUpdate(dt){
 // ================= КРИК =================
 function scream(){
   if(state!=='playing')return;
+  if(player.hidden){AU.click(false);return;} // крик из шкафа слышен на весь бункер
   const now=performance.now();
   if(now-screamCd<12000){AU.click(false);return;}
   screamCd=now;
@@ -2136,6 +2388,7 @@ function animate(){
     currentProx=clamp(1-md/12.5,0,1);
     updatePlayer(dt);
     updateMonster(dt);
+    updateStandoff(dt);
     updateInteract();
     maybeFalseScare(performance.now());
     // сердцебиение
@@ -2178,6 +2431,7 @@ function animate(){
   updateShadowFigures(dt);
   updateLights(dt);
   updateTapesAnim(dt);
+  updateLockers(dt);
 
   renderer.render(scene,camera);
   drawVHS(dt);
